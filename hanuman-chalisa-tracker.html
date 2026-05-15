@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>हनुमान चालीसा महायज्ञ</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Lotus Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪷</text></svg>">
+
+    <!-- Custom Tailwind Config for Spiritual Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        saffron: '#FF6B00',
+                        saffronLight: '#FF9933',
+                        cream: '#FFF8F0',
+                        deepOrange: '#CC5500'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom animations for spiritual aesthetic */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 107, 0, 0.6); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .shimmer { background: linear-gradient(90deg, #FF6B00 25%, #FF9933 50%, #FF6B00 75%); background-size: 200% 100%; animation: shimmer 3s linear infinite; }
+
+        /* Progress Ring Styles */
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring__circle { transition: stroke-dashoffset 0.5s ease-in-out; }
+
+        /* Toast notification styles */
+        .toast {
+            animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Prevent iOS zoom on input focus */
+        input, select, textarea { font-size: 16px !important; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #FFF8F0; }
+        ::-webkit-scrollbar-thumb { background: #FF9933; border-radius: 4px; }
+
+        /* Milestone banner */
+        .milestone-banner {
+            animation: milestoneAppear 0.5s ease-out;
+        }
+        @keyframes milestoneAppear {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-cream min-h-screen">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50"></div>
+
+    <!-- Milestone Banner (Hidden by default) -->
+    <div id="milestone-banner" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-gradient-to-r from-saffron to-deepOrange text-white px-8 py-6 rounded-2xl shadow-2xl text-center milestone-banner">
+        <div class="text-4xl mb-2">🎉</div>
+        <div class="text-2xl font-bold" id="milestone-text">Milestone Reached!</div>
+        <div class="text-lg mt-2">🙏 Jai Hanuman! 🙏</div>
+    </div>
+
+    <!-- Header Section -->
+    <header class="bg-gradient-to-r from-saffron to-saffronLight text-white py-6 px-4 text-center shadow-lg">
+        <!-- Decorative Sanskrit Title -->
+        <div class="text-2xl mb-2">॥ श्री हनुमान चालीसा ॥</div>
+
+        <!-- Main Title -->
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">हनुमान चालीसा महायज्ञ</h1>
+        <p class="text-lg md:text-xl opacity-90 mb-3">1 Crore Chanting Mission</p>
+
+        <!-- Today's Date -->
+        <p class="text-sm opacity-80" id="current-date"></p>
+
+        <!-- Live Count Display -->
+        <div class="mt-4 bg-white/20 rounded-xl px-6 py-3 inline-block">
+            <p class="text-sm opacity-80">Total Chants</p>
+            <p class="text-3xl md:text-4xl font-bold" id="total-count">Loading...</p>
+        </div>
+    </header>
+
+    <!-- Error Banner -->
+    <div id="error-banner" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 m-4 rounded-lg text-center">
+        ⚠️ Could not load data. Please refresh the page.
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6 max-w-7xl">
+
+        <!-- Progress Dashboard Section -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold text-saffron mb-4 text-center">Progress Dashboard</h2>
+
+            <!-- Circular Progress Ring -->
+            <div class="flex flex-col items-center mb-6">
+                <div class="relative">
+                    <svg class="progress-ring w-48 h-48 md:w-64 md:h-64">
+                        <circle class="text-gray-200" stroke="currentColor" stroke-width="8" fill="transparent" r="88" cx="96" cy="96"/>
+                        <circle id="progress-ring" class="progress-ring__circle text-saffron" stroke="currentColor" stroke-width="8" fill="transparent" r="88" cx="96" cy="96"
+                            stroke-dasharray="553" stroke-dashoffset="553" stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center flex-col">
+                        <span class="text-3xl md:text-4xl font-bold text-saffron" id="progress-percent">0%</span>
+                        <span class="text-sm text-gray-500">completed</span>
+                    </div>
+                </div>
+                <p class="mt-4 text-lg font-semibold text-gray-700" id="progress-text">0 out of 1,00,00,000 chants completed</p>
+            </div>
+
+            <!-- Progress Bar with Milestones -->
+            <div class="bg-white rounded-xl p-4 shadow-md">
+                <div class="relative h-6 bg-gray-200 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="absolute h-full bg-gradient-to-r from-saffron to-deepOrange transition-all duration-500" style="width: 0%"></div>
+                    <!-- Milestone Markers -->
+                    <div class="absolute top-0 left-[25%] h-full w-0.5 bg-yellow-500" title="25 Lakh"></div>
+                    <div class="absolute top-0 left-[50%] h-full w-0.5 bg-yellow-500" title="50 Lakh"></div>
+                    <div class="absolute top-0 left-[75%] h-full w-0.5 bg-yellow-500" title="75 Lakh"></div>
+                </div>
+                <!-- Milestone Labels -->
+                <div class="flex justify-between text-xs text-gray-500 mt-1 px-1">
+                    <span>0</span>
+                    <span class="text-yellow-600 font-semibold">25L</span>
+                    <span class="text-yellow-600 font-semibold">50L</span>
+                    <span class="text-yellow-600 font-semibold">75L</span>
+                    <span>1Cr</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Two Column Layout for Desktop -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+            <!-- Submission Form Section -->
+            <section class="bg-white rounded-2xl p-6 shadow-lg">
+                <h2 class="text-xl font-bold text-saffron mb-4 text-center">🙏 Submit Your Chanting 🙏</h2>
+
+                <form id="chanting-form" class="space-y-4">
+                    <!-- Name Input -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" id="name" name="name" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-saffron focus:border-saffron transition"
+                            placeholder="Enter your name" minlength="2">
+                    </div>
+
+                    <!-- Number of Chants Input -->
+                    <div>
+                        <label for="chant-count" class="block text-sm font-medium text-gray-700 mb-1">Times Chanted Today *</label>
+                        <input type="number" id="chant-count" name="chantCount" required min="1"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-saffron focus:border-saffron transition"
+                            placeholder="How many times?">
+                    </div>
+
+                    <!-- Dedication Input -->
+                    <div>
+                        <label for="dedication" class="block text-sm font-medium text-gray-700 mb-1">Dedication (Optional)</label>
+                        <input type="text" id="dedication" name="dedication"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-saffron focus:border-saffron transition"
+                            placeholder="I dedicate this chanting to...">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submit-btn"
+                        class="w-full bg-gradient-to-r from-saffron to-deepOrange text-white font-bold py-4 px-6 rounded-lg hover:opacity-90 transition transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
+                        <span id="btn-text">🙏 Record My Chanting 🙏</span>
+                        <span id="btn-loader" class="hidden">
+                            <svg class="animate-spin inline w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Submitting...
+                        </span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Daily Stats Card Section -->
+            <section class="bg-white rounded-2xl p-6 shadow-lg">
+                <h2 class="text-xl font-bold text-saffron mb-4 text-center">Today's Stats</h2>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Today's Total -->
+                    <div class="bg-gradient-to-br from-saffron/10 to-saffron/5 rounded-xl p-4 text-center">
+                        <p class="text-sm text-gray-500">Today's Total</p>
+                        <p class="text-3xl font-bold text-saffron" id="today-total">0</p>
+                    </div>
+
+                    <!-- Unique Devotees -->
+                    <div class="bg-gradient-to-br from-saffron/10 to-saffron/5 rounded-xl p-4 text-center">
+                        <p class="text-sm text-gray-500">Devotees</p>
+                        <p class="text-3xl font-bold text-saffron" id="today-devotees">0</p>
+                    </div>
+
+                    <!-- Average per Devotee -->
+                    <div class="bg-gradient-to-br from-saffron/10 to-saffron/5 rounded-xl p-4 text-center">
+                        <p class="text-sm text-gray-500">Avg/Devotee</p>
+                        <p class="text-3xl font-bold text-saffron" id="today-avg">0</p>
+                    </div>
+
+                    <!-- Most Active Time -->
+                    <div class="bg-gradient-to-br from-saffron/10 to-saffron/5 rounded-xl p-4 text-center">
+                        <p class="text-sm text-gray-500">Peak Hour</p>
+                        <p class="text-3xl font-bold text-saffron" id="today-peak">--</p>
+                    </div>
+                </div>
+
+                <!-- Total Registered Devotees -->
+                <div class="mt-4 bg-cream rounded-xl p-4 text-center">
+                    <p class="text-sm text-gray-500">Total Registered Devotees</p>
+                    <p class="text-2xl font-bold text-saffron" id="total-devotees">0</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- Leaderboard Section -->
+        <section class="bg-white rounded-2xl p-6 shadow-lg mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-saffron">🏆 Today's Leaderboard</h2>
+                <span class="text-sm text-gray-500" id="leaderboard-timer">Refreshes in 60s</span>
+            </div>
+
+            <div id="leaderboard" class="space-y-2">
+                <!-- Leaderboard entries will be populated by JS -->
+                <p class="text-center text-gray-500 py-4">Loading leaderboard...</p>
+            </div>
+        </section>
+
+        <!-- Historical Chart Section -->
+        <section class="bg-white rounded-2xl p-6 shadow-lg mb-6">
+            <h2 class="text-xl font-bold text-saffron mb-4 text-center">Journey So Far 📈</h2>
+            <div class="relative h-64 md:h-80">
+                <canvas id="history-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Recent Entries Log Section -->
+        <section class="bg-white rounded-2xl p-6 shadow-lg">
+            <h2 class="text-xl font-bold text-saffron mb-4 text-center">Recent Entries</h2>
+            <div id="recent-entries" class="max-h-96 overflow-y-auto space-y-2">
+                <!-- Recent entries will be populated by JS -->
+                <p class="text-center text-gray-500 py-4">Loading recent entries...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mobile Sticky Submit Button -->
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-cream via-cream to-transparent">
+        <a href="#chanting-form" class="block w-full bg-gradient-to-r from-saffron to-deepOrange text-white font-bold py-4 px-6 rounded-lg text-center shadow-lg">
+            🙏 Record Chanting 🙏
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-saffron to-deepOrange text-white py-6 px-4 mt-8 text-center">
+        <p class="text-lg mb-2">ॐ हनुमते नमः 🙏</p>
+        <p class="text-sm opacity-80">Built with devotion for the global Hanuman Chalisa Mission</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // ============================================
+        // CONFIGURATION - Update these values as needed
+        // ============================================
+        const CONFIG = {
+            GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxOwWV7MlKUgBaiErJu5QMWijWSuX8ocvI0o1V2AkQlderX5PYfk6PoUcYKWOC5Vo8x4A/exec',
+            GOAL: 10000000, // 1 Crore = 10 Million
+            REFRESH_INTERVAL: 60000, // Auto-refresh every 60 seconds
+        };
+
+        // ============================================
+        // Global State
+        // ============================================
+        let previousMilestone = 0;
+        let currentUserName = '';
+        let chart = null;
+
+        // ============================================
+        // Initialize on Page Load
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Display today's date in Indian format
+            displayDate();
+
+            // Fetch initial dashboard data
+            fetchDashboardData();
+
+            // Setup auto-refresh
+            setInterval(fetchDashboardData, CONFIG.REFRESH_INTERVAL);
+
+            // Setup form submission handler
+            setupFormHandler();
+        });
+
+        // ============================================
+        // Display Today's Date in Indian Format
+        // ============================================
+        function displayDate() {
+            const options = { day: '2-digit', month: 'long', year: 'numeric' };
+            const dateStr = new Date().toLocaleDateString('en-IN', options);
+            document.getElementById('current-date').textContent = dateStr;
+        }
+
+        // ============================================
+        // Fetch Dashboard Data from Backend
+        // ============================================
+        async function fetchDashboardData() {
+            try {
+                // For demo purposes, we'll use mock data if no Google Script URL is configured
+                if (CONFIG.GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
+                    loadMockData();
+                    return;
+                }
+
+                const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL + '?action=getDashboard');
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const data = await response.json();
+                updateDashboard(data);
+
+                // Hide error banner if visible
+                document.getElementById('error-banner').classList.add('hidden');
+
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                // Show error banner
+                document.getElementById('error-banner').classList.remove('hidden');
+                // Load mock data for demo
+                loadMockData();
+            }
+        }
+
+        // ============================================
+        // Update Dashboard with Data
+        // ============================================
+        function updateDashboard(data) {
+            // Update total count
+            const totalCount = data.totalCount || 0;
+            document.getElementById('total-count').textContent = formatNumber(totalCount);
+
+            // Update progress ring
+            updateProgressRing(totalCount);
+
+            // Update progress text
+            document.getElementById('progress-text').textContent =
+                `${formatNumber(totalCount)} out of 1,00,00,000 chants completed`;
+
+            // Update progress bar
+            const progressPercent = Math.min((totalCount / CONFIG.GOAL) * 100, 100);
+            document.getElementById('progress-bar').style.width = progressPercent + '%';
+
+            // Check for milestone crossing
+            checkMilestones(totalCount);
+
+            // Update daily stats
+            document.getElementById('today-total').textContent = formatNumber(data.todayTotal || 0);
+            document.getElementById('today-devotees').textContent = data.todayDevotees || 0;
+            document.getElementById('today-avg').textContent = data.todayAvg || 0;
+            document.getElementById('today-peak').textContent = data.todayPeak || '--';
+            document.getElementById('total-devotees').textContent = formatNumber(data.totalDevotees || 0);
+
+            // Update leaderboard
+            updateLeaderboard(data.todayLeaderboard || []);
+
+            // Update recent entries
+            updateRecentEntries(data.recentEntries || []);
+
+            // Update chart
+            updateChart(data.dailyHistory || []);
+        }
+
+        // ============================================
+        // Update Circular Progress Ring
+        // ============================================
+        function updateProgressRing(totalCount) {
+            const progressPercent = Math.min((totalCount / CONFIG.GOAL) * 100, 100);
+            const circumference = 2 * Math.PI * 88; // radius = 88
+            const offset = circumference - (progressPercent / 100) * circumference;
+
+            const ring = document.getElementById('progress-ring');
+            ring.style.strokeDashoffset = offset;
+
+            // Update percentage text
+            document.getElementById('progress-percent').textContent = progressPercent.toFixed(2) + '%';
+        }
+
+        // ============================================
+        // Check and Trigger Milestones
+        // ============================================
+        function checkMilestones(totalCount) {
+            const milestones = [
+                { threshold: 2500000, name: '25 Lakh! 🎉' },      // 25 Lakh
+                { threshold: 5000000, name: '50 Lakh! 🎊' },      // 50 Lakh
+                { threshold: 7500000, name: '75 Lakh! 🙌' },     // 75 Lakh
+                { threshold: 10000000, name: '1 Crore! 🏆' }      // 1 Crore
+            ];
+
+            for (const milestone of milestones) {
+                if (totalCount >= milestone.threshold && previousMilestone < milestone.threshold) {
+                    triggerMilestoneCelebration(milestone.name);
+                    previousMilestone = milestone.threshold;
+                    break;
+                }
+            }
+        }
+
+        // ============================================
+        // Trigger Milestone Celebration
+        // ============================================
+        function triggerMilestoneCelebration(milestoneName) {
+            // Show milestone banner
+            const banner = document.getElementById('milestone-banner');
+            document.getElementById('milestone-text').textContent = milestoneName;
+            banner.classList.remove('hidden');
+
+            // Trigger confetti
+            confetti({
+                particleCount: 200,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#FF6B00', '#FF9933', '#FFF8F0', '#FFCC00']
+            });
+
+            // Auto-hide banner after 5 seconds
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 5000);
+        }
+
+        // ============================================
+        // Update Leaderboard
+        // ============================================
+        function updateLeaderboard(leaderboard) {
+            const container = document.getElementById('leaderboard');
+
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">No submissions yet today. Be the first!</p>';
+                return;
+            }
+
+            container.innerHTML = leaderboard.map((entry, index) => {
+                const rankEmojis = ['🥇', '🥈', '🥉'];
+                const rankDisplay = index < 3 ? rankEmojis[index] : `#${index + 1}`;
+                const isCurrentUser = currentUserName && entry.name.toLowerCase() === currentUserName.toLowerCase();
+                const highlightClass = isCurrentUser ? 'bg-saffron/10 border-l-4 border-saffron' : '';
+
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-lg ${highlightClass} hover:bg-gray-50 transition">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xl w-8 text-center">${rankDisplay}</span>
+                            <div>
+                                <p class="font-semibold text-gray-800">${escapeHtml(entry.name)}</p>
+                                ${entry.dedication ? `<p class="text-xs text-gray-500 italic">"${escapeHtml(entry.dedication)}"</p>` : ''}
+                            </div>
+                        </div>
+                        <span class="text-xl font-bold text-saffron">${formatNumber(entry.count)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // Update Recent Entries
+        // ============================================
+        function updateRecentEntries(entries) {
+            const container = document.getElementById('recent-entries');
+
+            if (entries.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">No recent entries.</p>';
+                return;
+            }
+
+            container.innerHTML = entries.map(entry => `
+                <div class="flex flex-wrap justify-between items-center p-3 bg-cream/50 rounded-lg text-sm">
+                    <span class="font-semibold text-saffron w-24 truncate">${escapeHtml(entry.name)}</span>
+                    <span class="text-gray-600 w-20 text-center">${formatNumber(entry.count)} chants</span>
+                    <span class="text-gray-500 w-32 truncate text-center italic">${entry.dedication ? escapeHtml(entry.dedication) : '-'}</span>
+                    <span class="text-gray-400 text-xs w-28 text-right">${entry.dateTime}</span>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // Update Historical Chart
+        // ============================================
+        function updateChart(dailyHistory) {
+            const ctx = document.getElementById('history-chart').getContext('2d');
+
+            // Prepare data - last 30 days
+            const labels = dailyHistory.map(d => d.date);
+            const values = dailyHistory.map(d => d.count);
+
+            // Calculate 7-day moving average
+            const movingAvg = calculateMovingAverage(values, 7);
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Daily Chants',
+                            data: values,
+                            borderColor: '#FF6B00',
+                            backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: '7-Day Average',
+                            data: movingAvg,
+                            borderColor: '#FF9933',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // Calculate Moving Average
+        // ============================================
+        function calculateMovingAverage(data, windowSize) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                const start = Math.max(0, i - windowSize + 1);
+                const slice = data.slice(start, i + 1);
+                const avg = slice.reduce((a, b) => a + b, 0) / slice.length;
+                result.push(Math.round(avg));
+            }
+            return result;
+        }
+
+        // ============================================
+        // Setup Form Submission Handler
+        // ============================================
+        function setupFormHandler() {
+            const form = document.getElementById('chanting-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnLoader = document.getElementById('btn-loader');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // Store current user name for leaderboard highlighting
+                currentUserName = document.getElementById('name').value;
+
+                // Disable button and show loader
+                submitBtn.disabled = true;
+                btnText.classList.add('hidden');
+                btnLoader.classList.remove('hidden');
+
+                const formData = {
+                    name: document.getElementById('name').value,
+                    chantCount: parseInt(document.getElementById('chant-count').value),
+                    dedication: document.getElementById('dedication').value || '',
+                    date: new Date().toLocaleDateString('en-IN')
+                };
+
+                try {
+                    // Submit to Google Apps Script
+                    await submitChanting(formData);
+
+                    // Show success toast
+                    showToast('🙏 Jai Hanuman! Your chanting has been recorded.', 'success');
+
+                    // Reset form
+                    form.reset();
+
+                    // Refresh dashboard data
+                    fetchDashboardData();
+
+                } catch (error) {
+                    console.error('Error submitting:', error);
+                    showToast('Error submitting. Please try again.', 'error');
+                } finally {
+                    // Re-enable button
+                    submitBtn.disabled = false;
+                    btnText.classList.remove('hidden');
+                    btnLoader.classList.add('hidden');
+                }
+            });
+        }
+
+        // ============================================
+        // Submit Chanting Data
+        // ============================================
+        async function submitChanting(data) {
+            if (CONFIG.GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
+                // Mock submission for demo
+                console.log('Mock submission:', data);
+                return new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Required for Google Apps Script
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+
+            // Note: no-cors mode doesn't return response body
+            return true;
+        }
+
+        // ============================================
+        // Show Toast Notification
+        // ============================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-saffron';
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // ============================================
+        // Format Number with Indian Numbering
+        // ============================================
+        function formatNumber(num) {
+            return num.toLocaleString('en-IN');
+        }
+
+        // ============================================
+        // Escape HTML to Prevent XSS
+        // ============================================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // Update Leaderboard Timer
+        // ============================================
+        let leaderboardCountdown = 60;
+        setInterval(() => {
+            leaderboardCountdown--;
+            if (leaderboardCountdown <= 0) {
+                leaderboardCountdown = 60;
+                fetchDashboardData();
+            }
+            document.getElementById('leaderboard-timer').textContent = `Refreshes in ${leaderboardCountdown}s`;
+        }, 1000);
+
+        // ============================================
+        // Mock Data for Demo (when no backend configured)
+        // ============================================
+        function loadMockData() {
+            const mockData = {
+                totalCount: 1234567,
+                todayTotal: 5432,
+                todayDevotees: 89,
+                todayAvg: 61,
+                todayPeak: '6 PM',
+                totalDevotees: 12345,
+                todayLeaderboard: [
+                    { name: 'Ramesh Kumar', count: 108, dedication: 'For world peace' },
+                    { name: 'Priya Sharma', count: 54, dedication: 'Family wellbeing' },
+                    { name: 'Hanuman Das', count: 48, dedication: '' },
+                    { name: 'Sita Devi', count: 36, dedication: 'Lord Rama\'s blessings' },
+                    { name: 'Gopal Krishna', count: 33, dedication: '' },
+                    { name: 'Meera Bai', count: 28, dedication: 'For spiritual growth' },
+                    { name: 'Arjun Patel', count: 24, dedication: '' },
+                    { name: 'Krishna Iyer', count: 21, dedication: 'For success' },
+                    { name: 'Lakshmi Narayan', count: 18, dedication: '' },
+                    { name: 'Saraswati Devi', count: 15, dedication: 'For knowledge' }
+                ],
+                recentEntries: [
+                    { name: 'Anil Verma', count: 12, dedication: 'Morning prayers', dateTime: '2 mins ago' },
+                    { name: 'Gita Mishra', count: 5, dedication: '', dateTime: '5 mins ago' },
+                    { name: 'Vijay Singh', count: 21, dedication: 'Evening chanting', dateTime: '8 mins ago' },
+                    { name: 'Sunita Rao', count: 8, dedication: 'Family health', dateTime: '12 mins ago' },
+                    { name: 'Ravi Shankar', count: 15, dedication: '', dateTime: '15 mins ago' }
+                ],
+                dailyHistory: generateMockHistory()
+            };
+
+            updateDashboard(mockData);
+        }
+
+        // ============================================
+        // Generate Mock Historical Data
+        // ============================================
+        function generateMockHistory() {
+            const data = [];
+            let baseCount = 30000;
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                // Add some random variation
+                baseCount += Math.floor(Math.random() * 5000) - 1000;
+                data.push({ date: dateStr, count: Math.max(20000, baseCount) });
+            }
+            return data;
+        }
+    </script>
+</body>
+</html>
