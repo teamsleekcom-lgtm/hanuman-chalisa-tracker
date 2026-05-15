@@ -346,12 +346,6 @@
         // ============================================
         async function fetchDashboardData() {
             try {
-                // For demo purposes, we'll use mock data if no Google Script URL is configured
-                if (CONFIG.GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-                    loadMockData();
-                    return;
-                }
-
                 const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL + '?action=getDashboard');
                 if (!response.ok) throw new Error('Network response was not ok');
 
@@ -365,8 +359,6 @@
                 console.error('Error fetching dashboard data:', error);
                 // Show error banner
                 document.getElementById('error-banner').classList.remove('hidden');
-                // Load mock data for demo
-                loadMockData();
             }
         }
 
@@ -375,7 +367,7 @@
         // ============================================
         function updateDashboard(data) {
             // Update total count
-            const totalCount = data.totalCount || 0;
+            const totalCount = data.totalChants || 0;
             document.getElementById('total-count').textContent = formatNumber(totalCount);
 
             // Update progress ring
@@ -392,21 +384,22 @@
             // Check for milestone crossing
             checkMilestones(totalCount);
 
-            // Update daily stats
-            document.getElementById('today-total').textContent = formatNumber(data.todayTotal || 0);
-            document.getElementById('today-devotees').textContent = data.todayDevotees || 0;
-            document.getElementById('today-avg').textContent = data.todayAvg || 0;
-            document.getElementById('today-peak').textContent = data.todayPeak || '--';
+            // Update daily stats from today object
+            const today = data.today || {};
+            document.getElementById('today-total').textContent = formatNumber(today.chants || 0);
+            document.getElementById('today-devotees').textContent = today.uniqueDevotees || 0;
+            document.getElementById('today-avg').textContent = today.avgPerDevotee || 0;
+            document.getElementById('today-peak').textContent = today.mostActiveHour || '--';
             document.getElementById('total-devotees').textContent = formatNumber(data.totalDevotees || 0);
 
             // Update leaderboard
-            updateLeaderboard(data.todayLeaderboard || []);
+            updateLeaderboard(data.leaderboard || []);
 
             // Update recent entries
             updateRecentEntries(data.recentEntries || []);
 
-            // Update chart
-            updateChart(data.dailyHistory || []);
+            // Update chart from chart object
+            updateChart(data.chart || {});
         }
 
         // ============================================
@@ -523,18 +516,22 @@
         // ============================================
         // Update Historical Chart
         // ============================================
-        function updateChart(dailyHistory) {
+        function updateChart(chartData) {
             const ctx = document.getElementById('history-chart').getContext('2d');
 
-            // Prepare data - last 30 days
-            const labels = dailyHistory.map(d => d.date);
-            const values = dailyHistory.map(d => d.count);
-
-            // Calculate 7-day moving average
-            const movingAvg = calculateMovingAverage(values, 7);
+            // API returns: { labels: [...], data: [...], movingAvg: [...] }
+            const labels = chartData.labels || [];
+            const values = chartData.data || [];
+            const movingAvg = chartData.movingAvg || [];
 
             if (chart) {
                 chart.destroy();
+            }
+
+            if (values.every(v => v === 0)) {
+                // Show empty state if no data
+                ctx.canvas.parentElement.innerHTML = '<p class="text-center text-gray-500 py-8">No chanting data yet. Be the first to contribute!</p>';
+                return;
             }
 
             chart = new Chart(ctx, {
@@ -595,20 +592,6 @@
         }
 
         // ============================================
-        // Calculate Moving Average
-        // ============================================
-        function calculateMovingAverage(data, windowSize) {
-            const result = [];
-            for (let i = 0; i < data.length; i++) {
-                const start = Math.max(0, i - windowSize + 1);
-                const slice = data.slice(start, i + 1);
-                const avg = slice.reduce((a, b) => a + b, 0) / slice.length;
-                result.push(Math.round(avg));
-            }
-            return result;
-        }
-
-        // ============================================
         // Setup Form Submission Handler
         // ============================================
         function setupFormHandler() {
@@ -664,12 +647,6 @@
         // Submit Chanting Data
         // ============================================
         async function submitChanting(data) {
-            if (CONFIG.GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-                // Mock submission for demo
-                console.log('Mock submission:', data);
-                return new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
             const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors', // Required for Google Apps Script
@@ -731,58 +708,7 @@
             document.getElementById('leaderboard-timer').textContent = `Refreshes in ${leaderboardCountdown}s`;
         }, 1000);
 
-        // ============================================
-        // Mock Data for Demo (when no backend configured)
-        // ============================================
-        function loadMockData() {
-            const mockData = {
-                totalCount: 1234567,
-                todayTotal: 5432,
-                todayDevotees: 89,
-                todayAvg: 61,
-                todayPeak: '6 PM',
-                totalDevotees: 12345,
-                todayLeaderboard: [
-                    { name: 'Ramesh Kumar', count: 108, dedication: 'For world peace' },
-                    { name: 'Priya Sharma', count: 54, dedication: 'Family wellbeing' },
-                    { name: 'Hanuman Das', count: 48, dedication: '' },
-                    { name: 'Sita Devi', count: 36, dedication: 'Lord Rama\'s blessings' },
-                    { name: 'Gopal Krishna', count: 33, dedication: '' },
-                    { name: 'Meera Bai', count: 28, dedication: 'For spiritual growth' },
-                    { name: 'Arjun Patel', count: 24, dedication: '' },
-                    { name: 'Krishna Iyer', count: 21, dedication: 'For success' },
-                    { name: 'Lakshmi Narayan', count: 18, dedication: '' },
-                    { name: 'Saraswati Devi', count: 15, dedication: 'For knowledge' }
-                ],
-                recentEntries: [
-                    { name: 'Anil Verma', count: 12, dedication: 'Morning prayers', dateTime: '2 mins ago' },
-                    { name: 'Gita Mishra', count: 5, dedication: '', dateTime: '5 mins ago' },
-                    { name: 'Vijay Singh', count: 21, dedication: 'Evening chanting', dateTime: '8 mins ago' },
-                    { name: 'Sunita Rao', count: 8, dedication: 'Family health', dateTime: '12 mins ago' },
-                    { name: 'Ravi Shankar', count: 15, dedication: '', dateTime: '15 mins ago' }
-                ],
-                dailyHistory: generateMockHistory()
-            };
 
-            updateDashboard(mockData);
-        }
-
-        // ============================================
-        // Generate Mock Historical Data
-        // ============================================
-        function generateMockHistory() {
-            const data = [];
-            let baseCount = 30000;
-            for (let i = 29; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-                // Add some random variation
-                baseCount += Math.floor(Math.random() * 5000) - 1000;
-                data.push({ date: dateStr, count: Math.max(20000, baseCount) });
-            }
-            return data;
-        }
     </script>
 </body>
 </html>
