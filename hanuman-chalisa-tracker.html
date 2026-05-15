@@ -14,6 +14,9 @@
     <!-- Confetti Library -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+    <!-- Supabase Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
     <!-- Lotus Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪷</text></svg>">
 
@@ -303,10 +306,14 @@
         // CONFIGURATION - Update these values as needed
         // ============================================
         const CONFIG = {
-            GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxOwWV7MlKUgBaiErJu5QMWijWSuX8ocvI0o1V2AkQlderX5PYfk6PoUcYKWOC5Vo8x4A/exec',
+            SUPABASE_URL: 'https://gormddevcpgtctgyyfkg.supabase.co',
+            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdvcm1kZGV2Y3BndGN0Z3l5ZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NTAxNjAsImV4cCI6MjA5NDQyNjE2MH0.4SBTS0yYX3wXQY7lfXbPkVl-xRNeT1sn-2VoXK26ZKc',
             GOAL: 10000000, // 1 Crore = 10 Million
             REFRESH_INTERVAL: 60000, // Auto-refresh every 60 seconds
         };
+
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 
         // ============================================
         // Global State
@@ -342,32 +349,150 @@
         }
 
         // ============================================
-        // Fetch Dashboard Data from Backend
+        // Fetch Dashboard Data from Supabase
         // ============================================
         async function fetchDashboardData() {
             try {
-                // Google Apps Script does a redirect, adding omitCredentials and different mode
-                const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL + '?action=getDashboard', {
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
+                const today = new Date().toISOString().split('T')[0];
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error: ${response.status}`);
+                // Fetch total stats
+                const { data: totalData, error: totalError } = await supabase
+                    .from('chants')
+                    .select('name, chant_count');
+
+                if (totalError) throw totalError;
+
+                const totalChants = totalData.reduce((sum, row) => sum + row.chant_count, 0);
+                const totalDevotees = new Set(totalData.map(row => row.name)).size;
+
+                // Fetch today's stats
+                const { data: todayData, error: todayError } = await supabase
+                    .from('chants')
+                    .select('name, chant_count, created_at')
+                    .gte('created_at', today + 'T00:00:00');
+
+                if (todayError) throw todayError;
+
+                const todayChants = todayData.reduce((sum, row) => sum + row.chant_count, 0);
+                const todayDevotees = new Set(todayData.map(row => row.name)).size;
+                const todayAvg = todayDevotees > 0 ? Math.round(todayChants / todayDevotees) : 0;
+
+                // Find most active hour
+                const hourCounts = {};
+                todayData.forEach(row => {
+                    const hour = new Date(row.created_at).getHours();
+                    hourCounts[hour] = (hourCounts[hour] || 0) + row.chant_count;
+                });
+                let mostActiveHour = 'N/A';
+                let maxHourCount = 0;
+                for (const [hour, count] of Object.entries(hourCounts)) {
+                    if (count > maxHourCount) {
+                        maxHourCount = count;
+                        const hourNum = parseInt(hour);
+                        const suffix = hourNum >= 12 ? 'PM' : 'AM';
+                        const displayHour = hourNum === 0 ? 12 : (hourNum > 12 ? hourNum - 12 : hourNum);
+                        mostActiveHour = `${displayHour} ${suffix}`;
+                    }
                 }
 
-                const data = await response.json();
-                updateDashboard(data);
+                // Fetch leaderboard (top 10 today)
+                const { data: leaderboardData, error: leaderboardError } = await supabase
+                    .from('chants')
+                    .select('name, chant_count, dedication')
+                    .gte('created_at', today + 'T00:00:00')
+                    .order('chant_count', { ascending: false })
+                    .limit(10);
 
-                // Hide error banner if visible
+                if (leaderboardError) throw leaderboardError;
+
+                const leaderboard = leaderboardData.map(row => ({
+                    name: row.name,
+                    count: row.chant_count,
+                    dedication: row.dedication || ''
+                }));
+
+                // Fetch recent entries (last 20)
+                const { data: recentData, error: recentError } = await supabase
+                    .from('chants')
+                    .select('name, chant_count, dedication, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (recentError) throw recentError;
+
+                const recentEntries = recentData.map(row => ({
+                    name: row.name,
+                    count: row.chant_count,
+                    dedication: row.dedication || '',
+                    dateTime: new Date(row.created_at).toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                }));
+
+                // Fetch last 30 days for chart
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const { data: chartDataResult, error: chartError } = await supabase
+                    .from('chants')
+                    .select('chant_count, created_at')
+                    .gte('created_at', thirtyDaysAgo.toISOString());
+
+                if (chartError) throw chartError;
+
+                // Build chart data (last 30 days)
+                const labels = [];
+                const data = [];
+                const movingAvg = [];
+
+                for (let i = 29; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    labels.push(dateStr);
+
+                    const dayTotal = chartDataResult
+                        .filter(row => row.created_at.split('T')[0] === dateStr)
+                        .reduce((sum, row) => sum + row.chant_count, 0);
+                    data.push(dayTotal);
+                }
+
+                // Calculate 7-day moving average
+                for (let i = 0; i < data.length; i++) {
+                    if (i < 6) {
+                        movingAvg.push(0);
+                    } else {
+                        const slice = data.slice(i - 6, i + 1);
+                        movingAvg.push(Math.round(slice.reduce((a, b) => a + b, 0) / 7));
+                    }
+                }
+
+                // Update dashboard
+                const dashboardData = {
+                    totalChants,
+                    goal: CONFIG.GOAL,
+                    percentage: ((totalChants / CONFIG.GOAL) * 100).toFixed(4),
+                    totalDevotees,
+                    today: {
+                        date: today,
+                        chants: todayChants,
+                        uniqueDevotees: todayDevotees,
+                        avgPerDevotee: todayAvg,
+                        mostActiveHour
+                    },
+                    leaderboard,
+                    recentEntries,
+                    chart: { labels, data, movingAvg }
+                };
+
+                updateDashboard(dashboardData);
                 document.getElementById('error-banner').classList.add('hidden');
 
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
-                // Show error banner with more details
-                const errorBanner = document.getElementById('error-banner');
-                errorBanner.innerHTML = `⚠️ Could not load data (${error.message}). <a href="${CONFIG.GOOGLE_SCRIPT_URL}?action=getDashboard" target="_blank" class="underline">Click here</a> to test the API directly.`;
-                errorBanner.classList.remove('hidden');
+                document.getElementById('error-banner').classList.remove('hidden');
             }
         }
 
@@ -656,16 +781,15 @@
         // Submit Chanting Data
         // ============================================
         async function submitChanting(data) {
-            const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Required for Google Apps Script
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
+            const { error } = await supabase
+                .from('chants')
+                .insert({
+                    name: data.name,
+                    chant_count: data.chantCount,
+                    dedication: data.dedication || null
+                });
 
-            // Note: no-cors mode doesn't return response body
+            if (error) throw error;
             return true;
         }
 
