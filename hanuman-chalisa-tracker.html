@@ -313,7 +313,7 @@
         };
 
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+        const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 
         // ============================================
         // Global State
@@ -356,7 +356,7 @@
                 const today = new Date().toISOString().split('T')[0];
 
                 // Fetch total stats
-                const { data: totalData, error: totalError } = await supabase
+                const { data: totalData, error: totalError } = await supabaseClient
                     .from('chants')
                     .select('name, chant_count');
 
@@ -366,7 +366,7 @@
                 const totalDevotees = new Set(totalData.map(row => row.name)).size;
 
                 // Fetch today's stats
-                const { data: todayData, error: todayError } = await supabase
+                const { data: todayData, error: todayError } = await supabaseClient
                     .from('chants')
                     .select('name, chant_count, created_at')
                     .gte('created_at', today + 'T00:00:00');
@@ -396,7 +396,7 @@
                 }
 
                 // Fetch leaderboard (top 10 today)
-                const { data: leaderboardData, error: leaderboardError } = await supabase
+                const { data: leaderboardData, error: leaderboardError } = await supabaseClient
                     .from('chants')
                     .select('name, chant_count, dedication')
                     .gte('created_at', today + 'T00:00:00')
@@ -412,7 +412,7 @@
                 }));
 
                 // Fetch recent entries (last 20)
-                const { data: recentData, error: recentError } = await supabase
+                const { data: recentData, error: recentError } = await supabaseClient
                     .from('chants')
                     .select('name, chant_count, dedication, created_at')
                     .order('created_at', { ascending: false })
@@ -435,7 +435,7 @@
                 // Fetch last 30 days for chart
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                const { data: chartDataResult, error: chartError } = await supabase
+                const { data: chartDataResult, error: chartError } = await supabaseClient
                     .from('chants')
                     .select('chant_count, created_at')
                     .gte('created_at', thirtyDaysAgo.toISOString());
@@ -781,7 +781,7 @@
         // Submit Chanting Data
         // ============================================
         async function submitChanting(data) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('chants')
                 .insert({
                     name: data.name,
