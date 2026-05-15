@@ -346,8 +346,15 @@
         // ============================================
         async function fetchDashboardData() {
             try {
-                const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL + '?action=getDashboard');
-                if (!response.ok) throw new Error('Network response was not ok');
+                // Google Apps Script does a redirect, adding omitCredentials and different mode
+                const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL + '?action=getDashboard', {
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
 
                 const data = await response.json();
                 updateDashboard(data);
@@ -357,8 +364,10 @@
 
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
-                // Show error banner
-                document.getElementById('error-banner').classList.remove('hidden');
+                // Show error banner with more details
+                const errorBanner = document.getElementById('error-banner');
+                errorBanner.innerHTML = `⚠️ Could not load data (${error.message}). <a href="${CONFIG.GOOGLE_SCRIPT_URL}?action=getDashboard" target="_blank" class="underline">Click here</a> to test the API directly.`;
+                errorBanner.classList.remove('hidden');
             }
         }
 
