@@ -651,21 +651,31 @@
         // Update Historical Chart
         // ============================================
         function updateChart(chartData) {
-            const ctx = document.getElementById('history-chart').getContext('2d');
+            const chartContainer = document.getElementById('history-chart').parentElement;
 
             // API returns: { labels: [...], data: [...], movingAvg: [...] }
             const labels = chartData.labels || [];
             const values = chartData.data || [];
             const movingAvg = chartData.movingAvg || [];
 
-            if (chart) {
-                chart.destroy();
+            // Check if all values are zero (no data)
+            const allZeros = values.every(v => v === 0);
+
+            if (allZeros) {
+                // Show empty state if no data
+                chartContainer.innerHTML = '<p class="text-center text-gray-500 py-8">No chanting data yet. Be the first to contribute!</p>';
+                return;
             }
 
-            if (values.every(v => v === 0)) {
-                // Show empty state if no data
-                ctx.canvas.parentElement.innerHTML = '<p class="text-center text-gray-500 py-8">No chanting data yet. Be the first to contribute!</p>';
-                return;
+            // Re-create canvas if it was replaced with message
+            if (!document.getElementById('history-chart')) {
+                chartContainer.innerHTML = '<canvas id="history-chart"></canvas>';
+            }
+
+            const ctx = document.getElementById('history-chart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
             }
 
             chart = new Chart(ctx, {
